@@ -3,9 +3,7 @@
 
 {% regroup votes by round_minute as unique_time %}
 
-{% for timestamp in unique_time %}
-    <li>{{timestamp}}</li>
-{% endfor %}
+
 
 <table>
     <tr>
