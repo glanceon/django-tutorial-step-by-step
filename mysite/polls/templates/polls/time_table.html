@@ -1,0 +1,34 @@
+{% load convert_tags %}
+{% block timetable %}
+
+{% regroup votes by round_minute as unique_time %}
+
+{% for timestamp in unique_time %}
+    <li>{{timestamp}}</li>
+{% endfor %}
+
+<table>
+    <tr>
+        <th>Time</th>
+        {% for choice in question.choice_set.all %}
+            <th>{{ choice.choice_text }}</th>
+        {% endfor %}
+    </tr>
+    {% for timestamp in unique_time %}
+    <tr>
+      <td>{{timestamp.grouper|time:"H:i"}}</td>
+      {% for choice in question.choice_set.all %}
+      {% if choice|add_quotes in timestamp.list|add_quotes %}
+        {% for stamp in timestamp.list %}
+          {% if stamp.pk_choice_id == choice.id %}
+          <td>{{stamp.vote_count}}</td>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+      <td>0</td>
+      {% endif %}
+      {% endfor %}
+    </tr>
+    {% endfor %}
+  </table>
+{% endblock %}

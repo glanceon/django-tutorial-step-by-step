@@ -3,8 +3,9 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.views import generic
 from django.utils import timezone
-
-from .models import Choice, Question
+from django.db.models import Count, F, Q
+from django.db.models.functions import TruncHour,TruncMinute
+from .models import Choice, Question, Vote
 
 
 class IndexView(generic.ListView):
@@ -36,6 +37,22 @@ class ResultsView(generic.DetailView):
     model = Question
     template_name = 'polls/results.html'
 
+    def get_context_data(self, **kwargs):
+        """
+        Lazy to find optimal view, brute forcing extra context
+        """
+        context = super().get_context_data(**kwargs)
+        context['votes'] = (Vote.objects
+            .annotate(
+            # Rounds up TimeField to Hours:Minutes
+            round_minute=TruncMinute('voted_at')
+            )
+            .values('round_minute','pk_choice__choice_text','pk_choice_id')
+            .annotate(vote_count=Count('pk_choice'))
+            .order_by('round_minute')
+        )
+        return context
+
 
 def vote(request, question_id):
     question = get_object_or_404(Question, pk=question_id)
@@ -48,6 +65,8 @@ def vote(request, question_id):
             'error_message': "You didn't select a choice.",
         })
     else:
+        vote = Vote(pk_choice=selected_choice)
+        vote.save()
         selected_choice.votes += 1
         selected_choice.save()
         # Always return an HttpResponseRedirect after successfully dealing

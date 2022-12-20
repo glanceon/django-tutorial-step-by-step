@@ -1,0 +1,73 @@
+Django Questions/improvements:
+
+1.What should the development life cycle look like?
+
+I'm assuming you were talking about lifecycle of development as a whole and not CI/CD pipeline.
+As far as I know you need to assess the requirements
+ --> design application 
+ --> code it 
+ --> test 
+ --> (optionally) review by senior dev 
+ --> Deploy and maintain
+
+2.Imagine: You are using GitHub branches, you have one test server and you are working with migrations. On the server, you need to test multiple branches, which contain migrations for the same table/tables. How would you set up the environment so that you can switch between branches?
+
+Stellar is good tool for that. You can keeps snapshots of the database in the RDBMS.
+First take snapshot in original state
+```stellar snapshot <mydb>```
+
+After you checkout a new branch, you restore the snapshot and apply migrations created. 
+```
+stellar restore <mydb>
+python manage.py migrate
+```
+
+3.We have multiple scripts that can post data to an external API. The posting configuration for each one is stored in DB. The configuration contains posting_start_time, indicating when the posting should start. How would ensure that each posting starts at the specified time?
+
+I am imagining something like using Celery to run scripts periodically, and pulling posting_start_time from database via psycopg2 or whatever database we use.
+
+4.What can be used to effectively run complex SQL queries in Django?
+
+You can use low level tool "elasticsearch" built on java, which uses JSON to store data,
+and enables users to explore very large amount of data quickly.
+
+5.How could migrations be reverted? 
+
+By command "python manage.py migrate {app_name} {migration_version}"
+
+
+
+Task 2 - Challenges
+What causes this behavior?
+
+The script is comparing numbers to be within a specified range.
+range_from - Lowest number allowed
+range_to - highest number allowed
+number - number being compared.
+
+The condition is:
+if (( number < range_from ) | (number > range_to))
+
+What would cause the number 30.86 to be evaluated as not within the 0 - 200 range
+
+A: condition is wrong, should be `if (( number > range_from ) | (number < range_to))`
+
+In the SQL database, you have a table containing items delivered by suppliers.
+
+To check the quality of the items supplied, you want to send them for a test.
+
+With an SQL query, how would you ensure that you send:
+300 items from supplier 1
+200 items from supplier 2
+50 items from supplier 3
+and if there are not enough (550) items from previous suppliers, fill the rest with items from supplier 4.
+
+SELECT *
+FROM suppliers INNER JOIN items ON suppliers.ID = items.supplier_id
+GROUP BY suppliers.ID
+HAVING COUNT(supplier.ID == 1) = 300 and COUNT(supplier.ID == 2) = 200 and COUNT(supplier.ID == 3) = 50
+CASE 
+    WHEN COUNT(COUNT(supplier.ID == 1) = 300 and COUNT(supplier.ID == 2) = 200 and COUNT(supplier.ID == 3) = 50) as total_count < 550 THEN SUM(total_count + COUNT(supplier.ID == 4))
+
+
+To understand why this is such a bad query, you need to know that I haven't touched upon sql in ages.
